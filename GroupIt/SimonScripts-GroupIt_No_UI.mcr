@@ -10,7 +10,7 @@ autoUndoEnabled:false
 	global SS_SCRIPT_FILENAME = "SimonScripts-GroupIt_no_UI.mcr"
 	global SS_SCRIPTSPOT_URL  = "https://www.scriptspot.com/3ds-max/scripts/group-it"
 	global SS_VERSION_URL     = "https://raw.githubusercontent.com/monsi02/maxscripts-releases/main/GroupIt/version.txt"
-	global SS_PACKAGE_URL     = "https://raw.githubusercontent.com/monsi02/maxscripts-releases/main/GroupIt/SimonScripts-GroupIt_V1-4-9_No_UI.mcr"
+	global SS_PACKAGE_URL     = "https://raw.githubusercontent.com/monsi02/maxscripts-releases/main/GroupIt/SimonScripts-GroupIt_No_UI.mcr"
 	
 	-- =============================================
 -- SS_UpdateChecker.ms

@@ -124,6 +124,41 @@ autoUndoEnabled:false
 			format "[ UpdateChecker:% ] Could not reach version file - silent fail.\n" SS_SCRIPT_NAME
 			return false
 		)
+		-- Download to temp first, then copy to userMacros
+		local tmpPkg = (getDir #temp) + "\\ss_pkg_" + SS_SCRIPT_NAME + ".mcr"
+
+		if not (curlFetch SS_PACKAGE_URL tmpPkg) do
+		(
+			format "[ UpdateChecker:% ] Download failed.\n" SS_SCRIPT_NAME
+			messageBox "Download failed.\nPlease update manually on Scriptspot." \
+				title:(SS_SCRIPT_NAME + " — Download Failed")
+			shellLaunch SS_SCRIPTSPOT_URL ""
+			return false
+		)
+
+		-- Copy from temp to userMacros
+		local destFile = (getDir #userMacros) + "\\" + SS_SCRIPT_FILENAME
+		if not (curlFetch SS_PACKAGE_URL destFile) do
+		(
+			format "[ UpdateChecker ] curlFetch returned false\n"
+			return false
+		)
+		
+		copyFile tmpPkg destFile
+		deleteFile tmpPkg
+
+		if not (doesFileExist destFile) do
+		(
+			format "[ UpdateChecker:% ] Copy to userMacros failed.\n" SS_SCRIPT_NAME
+			return false
+		)
+
+
+		
+
+		-- Debug: read back what was written
+		format "[ UpdateChecker ] File size: % bytes\n" (getFileSize destFile)
+		format "[ UpdateChecker ] First line: %\n" (readTextFile destFile)
 		
 		local remoteVer = readTextFile tmpVer
 		deleteFile tmpVer

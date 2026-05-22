@@ -215,6 +215,13 @@ fn checkForUpdate silent:true =
     local destFile = (getDir #userMacros) + "\\" + SS_SCRIPT_FILENAME
     copyFile tmpPkg destFile
     deleteFile tmpPkg
+	
+	-- debug
+	local f = openFile destFile mode:"r"
+	local firstLine = readline f
+	close f
+	format "[ UpdateChecker:% ] dest first line: %\n" SS_SCRIPT_NAME firstLine
+	format "[ UpdateChecker:% ] dest size: % bytes\n" SS_SCRIPT_NAME (getFileSize destFile)
 
     if not (doesFileExist destFile) do
     (
@@ -233,7 +240,8 @@ fn checkForUpdate silent:true =
 		fileIn destFile
 		-- relaunch the macro to apply new version immediately
 		macros.run "SimonScripts" "GroupIt_no_UI"
-		reloaded = true 
+		reloaded = true
+		SS_CURRENT_VERSION = remoteVer
 	) catch ()
 
     if reloaded then

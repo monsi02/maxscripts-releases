@@ -12,219 +12,239 @@ autoUndoEnabled:false
 	local SS_VERSION_URL     = "https://raw.githubusercontent.com/monsi02/maxscripts-releases/main/GroupIt/version.txt"
 	local SS_PACKAGE_URL     = "https://raw.githubusercontent.com/monsi02/maxscripts-releases/main/GroupIt/SimonScripts-GroupIt_V1-4-9_No_UI.mcr"
 	
-	fn curlFetch url outFile =
-	(
-		if doesFileExist outFile do deleteFile outFile
-		
-		local psi = dotNetObject "System.Diagnostics.ProcessStartInfo" "curl.exe"
-		psi.Arguments       = "--ssl-no-revoke -L -s --max-time 10 \"" + url + "\" -o \"" + outFile + "\""
-		psi.UseShellExecute = false
-		psi.CreateNoWindow  = true
-		
-		local proc = dotNetObject "System.Diagnostics.Process"
-		proc.StartInfo = psi
-		try ( proc.Start(); proc.WaitForExit 12000 ) catch ( return false )
-		
-		doesFileExist outFile and (getFileSize outFile) > 0
-	)
+	-- =============================================
+-- SS_UpdateChecker.ms
+-- Auto-update system for Scriptspot scripts
+-- 
+-- Place this file in your #userScripts folder.
+--
+-- In each of your .mcr scripts, add at the top:
+--
+--   global SS_CURRENT_VERSION = "1.4.9"
+--   global SS_SCRIPT_NAME     = "GroupIt"
+--   global SS_SCRIPT_FILENAME = "SimonScripts-GroupIt_no_UI.mcr"
+--   global SS_SCRIPTSPOT_URL  = "https://www.scriptspot.com/3ds-max/scripts/group-it"
+--   global SS_VERSION_URL     = "https://raw.githubusercontent.com/monsi02/maxscripts-releases/main/GroupIt/version.txt"
+--   global SS_PACKAGE_URL     = "https://raw.githubusercontent.com/monsi02/maxscripts-releases/main/GroupIt/SimonScripts-GroupIt_V1-4-9_No_UI.mcr"
+--
+--   fileIn ((getDir #userScripts) + "\\SS_UpdateChecker.ms")
+--   checkForUpdate()
+-- =============================================
 
-	-- ---------------------------------------------
-	fn readTextFile path =
-	(
-		local result = ""
-		try
-		(
-			local f = openFile path mode:"r"
-			while not eof f do result += readline f
-			close f
-		)
-		catch ()
-		trimRight (trimLeft result)
-	)
+-- ---------------------------------------------
+fn curlFetch url outFile =
+(
+    if doesFileExist outFile do deleteFile outFile
 
-	-- ---------------------------------------------
-	fn versionIsNewer remoteVer localVer =
-	(
-		local r = filterString remoteVer "."
-		local l = filterString localVer  "."
-		local isNewer = false
-		local minCount = if r.count < l.count then r.count else l.count
-		for i = 1 to minCount do
-		(
-			local rv = execute r[i]
-			local lv = execute l[i]
-			if rv > lv then ( isNewer = true;  exit )
-			if rv < lv then ( isNewer = false; exit )
-		)
-		if not isNewer and r.count > l.count do isNewer = true
-		isNewer
-	)
+    local psi = dotNetObject "System.Diagnostics.ProcessStartInfo" "curl.exe"
+    psi.Arguments       = "--ssl-no-revoke -L -s --max-time 10 \"" + url + "\" -o \"" + outFile + "\""
+    psi.UseShellExecute = false
+    psi.CreateNoWindow  = true
 
-	-- ---------------------------------------------
-	fn getInstalledVersion scriptFilename =
-	(
-		local ver = undefined
-		local mcr = (getDir #userMacros) + "\\" + scriptFilename
-		if not doesFileExist mcr do return undefined
-		
-		try
-		(
-			local f = openFile mcr mode:"r"
-			while not eof f do
-			(
-				local line = readline f
-				if (findString line "SS_CURRENT_VERSION") != undefined and \
-				   (findString line "=") != undefined then
-				(
-					local q1 = findString line "\""
-					if q1 != undefined then
-					(
-						local q2 = findString line "\"" (q1 + 1)
-						if q2 != undefined do
-							ver = substring line (q1 + 1) (q2 - q1 - 1)
-					)
-					exit
-				)
-			)
-			close f
-		)
-		catch ()
-		ver
-	)
+    local proc = dotNetObject "System.Diagnostics.Process"
+    proc.StartInfo = psi
+    try ( proc.Start(); proc.WaitForExit 12000 ) catch ( return false )
 
-	-- ---------------------------------------------
-	fn checkForUpdate silent:true =
-	(
-		format "[ UpdateChecker:% ] Checking for updates...\n" SS_SCRIPT_NAME
-		
-		-- Resolve local version: explicit global > read from file > force update
-		local localVer = undefined
-		try ( if SS_CURRENT_VERSION != undefined do localVer = SS_CURRENT_VERSION ) catch ()
-		
-		if localVer == undefined then
-		(
-			localVer = getInstalledVersion SS_SCRIPT_FILENAME
-			if localVer != undefined then
-				format "[ UpdateChecker:% ] Auto-detected version: %\n" SS_SCRIPT_NAME localVer
-			else
-			(
-				format "[ UpdateChecker:% ] No version found - will force update check.\n" SS_SCRIPT_NAME
-				localVer = "0.0.0"
-			)
-		)
-		else
-			format "[ UpdateChecker:% ] Local version: %\n" SS_SCRIPT_NAME localVer
-		
-		-- Fetch remote version
-		local tmpVer = (getDir #temp) + "\\ss_ver_" + SS_SCRIPT_NAME + ".txt"
-		
-		format "[ UpdateChecker:% ] Fetching remote version...\n" SS_SCRIPT_NAME
-		if not (curlFetch SS_VERSION_URL tmpVer) do
-		(
-			format "[ UpdateChecker:% ] Could not reach version file - silent fail.\n" SS_SCRIPT_NAME
-			return false
-		)
-		-- Download to temp first, then copy to userMacros
-		local tmpPkg = (getDir #temp) + "\\ss_pkg_" + SS_SCRIPT_NAME + ".mcr"
+    doesFileExist outFile and (getFileSize outFile) > 0
+)
 
-		if not (curlFetch SS_PACKAGE_URL tmpPkg) do
-		(
-			format "[ UpdateChecker:% ] Download failed.\n" SS_SCRIPT_NAME
-			messageBox "Download failed.\nPlease update manually on Scriptspot." \
-				title:(SS_SCRIPT_NAME + " — Download Failed")
-			shellLaunch SS_SCRIPTSPOT_URL ""
-			return false
-		)
+-- ---------------------------------------------
+fn readTextFile path =
+(
+    local result = ""
+    try
+    (
+        local f = openFile path mode:"r"
+        while not eof f do result += readline f
+        close f
+    )
+    catch ()
+    trimRight (trimLeft result)
+)
 
-		-- Copy from temp to userMacros
-		local destFile = (getDir #userMacros) + "\\" + SS_SCRIPT_FILENAME
-		if not (curlFetch SS_PACKAGE_URL destFile) do
-		(
-			format "[ UpdateChecker ] curlFetch returned false\n"
-			return false
-		)
-		
-		copyFile tmpPkg destFile
-		deleteFile tmpPkg
+-- ---------------------------------------------
+fn versionIsNewer remoteVer localVer =
+(
+    local r = filterString remoteVer "."
+    local l = filterString localVer  "."
+    local isNewer = false
+    local minCount = if r.count < l.count then r.count else l.count
+    for i = 1 to minCount do
+    (
+        local rv = execute r[i]
+        local lv = execute l[i]
+        if rv > lv then ( isNewer = true; exit )
+        if rv < lv then ( isNewer = false; exit )
+    )
+    if not isNewer and r.count > l.count do isNewer = true
+    isNewer
+)
 
-		if not (doesFileExist destFile) do
-		(
-			format "[ UpdateChecker:% ] Copy to userMacros failed.\n" SS_SCRIPT_NAME
-			return false
-		)
+-- ---------------------------------------------
+fn getInstalledVersion scriptFilename =
+(
+    local ver = undefined
+    local mcr = (getDir #userMacros) + "\\" + scriptFilename
+    if not doesFileExist mcr do return undefined
 
+    try
+    (
+        local f = openFile mcr mode:"r"
+        while not eof f do
+        (
+            local line = readline f
+            if (findString line "SS_CURRENT_VERSION") != undefined and \
+               (findString line "=") != undefined then
+            (
+                local q1 = findString line "\""
+                if q1 != undefined then
+                (
+                    local q2 = findString line "\"" (q1 + 1)
+                    if q2 != undefined do
+                        ver = substring line (q1 + 1) (q2 - q1 - 1)
+                )
+                exit
+            )
+        )
+        close f
+    )
+    catch ()
+    ver
+)
 
-		
+-- ---------------------------------------------
+fn checkForUpdate silent:true =
+(
+    format "[ UpdateChecker:% ] Checking for updates...\n" SS_SCRIPT_NAME
 
-		-- Debug: read back what was written
-		format "[ UpdateChecker ] File size: % bytes\n" (getFileSize destFile)
-		format "[ UpdateChecker ] First line: %\n" (readTextFile destFile)
-		
-		local remoteVer = readTextFile tmpVer
-		deleteFile tmpVer
-		
-		if remoteVer == "" do
-		(
-			format "[ UpdateChecker:% ] Empty version string - silent fail.\n" SS_SCRIPT_NAME
-			return false
-		)
-		
-		format "[ UpdateChecker:% ] Remote: % | Local: %\n" SS_SCRIPT_NAME remoteVer localVer
-		
-		-- Compare versions
-		if not (versionIsNewer remoteVer localVer) do
-		(
-			format "[ UpdateChecker:% ] Already up to date.\n" SS_SCRIPT_NAME
-			if not silent do
-				messageBox ("You have the latest version (v" + localVer + ").") \
-					title:(SS_SCRIPT_NAME + " — Up to Date")
-			return false
-		)
-		
-		-- Prompt user
-		format "[ UpdateChecker:% ] Update available: %\n" SS_SCRIPT_NAME remoteVer
-		local msg = SS_SCRIPT_NAME + " v" + remoteVer + " is available!\n" + \
-					"You have v" + localVer + ".\n\n" + \
-					"Download and install now?"
-		if not (queryBox msg title:(SS_SCRIPT_NAME + " — Update Available")) do
-		(
-			format "[ UpdateChecker:% ] User declined update.\n" SS_SCRIPT_NAME
-			return false
-		)
-		
-		-- Download directly to #userMacros
-		format "[ UpdateChecker:% ] Downloading...\n" SS_SCRIPT_NAME
-		local destFile = (getDir #userMacros) + "\\" + SS_SCRIPT_FILENAME
-		
-		if not (curlFetch SS_PACKAGE_URL destFile) do
-		(
-			format "[ UpdateChecker:% ] Download failed.\n" SS_SCRIPT_NAME
-			messageBox "Download failed.\nPlease update manually on Scriptspot." \
-				title:(SS_SCRIPT_NAME + " — Download Failed")
-			shellLaunch SS_SCRIPTSPOT_URL ""
-			return false
-		)
-		
-		-- Re-execute without reboot
-		format "[ UpdateChecker:% ] Installing via fileIn...\n" SS_SCRIPT_NAME
-		local reloaded = false
-		try ( fileIn destFile; reloaded = true ) catch ()
-		
-		if reloaded then
-		(
-			format "[ UpdateChecker:% ] Success - loaded v%\n" SS_SCRIPT_NAME remoteVer
-			messageBox ("v" + remoteVer + " installed and loaded!\nNo restart needed.") \
-				title:(SS_SCRIPT_NAME + " — Updated!")
-		)
-		else
-		(
-			format "[ UpdateChecker:% ] fileIn failed - restart may be needed.\n" SS_SCRIPT_NAME
-			messageBox ("v" + remoteVer + " downloaded.\nPlease restart 3ds Max to apply the update.") \
-				title:(SS_SCRIPT_NAME + " — Updated!")
-		)
-		
-		reloaded
-	)
+    -- Resolve local version: explicit global > read from file > force update
+    local localVer = undefined
+    try ( if SS_CURRENT_VERSION != undefined do localVer = SS_CURRENT_VERSION ) catch ()
+
+    if localVer == undefined then
+    (
+        localVer = getInstalledVersion SS_SCRIPT_FILENAME
+        if localVer != undefined then
+            format "[ UpdateChecker:% ] Auto-detected version: %\n" SS_SCRIPT_NAME localVer
+        else
+        (
+            format "[ UpdateChecker:% ] No version found - forcing update check.\n" SS_SCRIPT_NAME
+            localVer = "0.0.0"
+        )
+    )
+    else
+        format "[ UpdateChecker:% ] Local version: %\n" SS_SCRIPT_NAME localVer
+
+    -- Fetch remote version
+    local tmpVer = (getDir #temp) + "\\ss_ver_" + SS_SCRIPT_NAME + ".txt"
+
+    format "[ UpdateChecker:% ] Fetching remote version...\n" SS_SCRIPT_NAME
+    if not (curlFetch SS_VERSION_URL tmpVer) do
+    (
+        format "[ UpdateChecker:% ] Could not reach version file - silent fail.\n" SS_SCRIPT_NAME
+        return false
+    )
+
+    local remoteVer = readTextFile tmpVer
+    deleteFile tmpVer
+
+    if remoteVer == "" do
+    (
+        format "[ UpdateChecker:% ] Empty version string - silent fail.\n" SS_SCRIPT_NAME
+        return false
+    )
+
+    format "[ UpdateChecker:% ] Remote: % | Local: %\n" SS_SCRIPT_NAME remoteVer localVer
+
+    -- Compare versions
+    if not (versionIsNewer remoteVer localVer) do
+    (
+        format "[ UpdateChecker:% ] Already up to date.\n" SS_SCRIPT_NAME
+        if not silent do
+            messageBox ("You have the latest version (v" + localVer + ").") \
+                title:(SS_SCRIPT_NAME + " — Up to Date")
+        return false
+    )
+
+    -- Prompt user
+    format "[ UpdateChecker:% ] Update available: %\n" SS_SCRIPT_NAME remoteVer
+    local msg = SS_SCRIPT_NAME + " v" + remoteVer + " is available!\n" + \
+                "You have v" + localVer + ".\n\n" + \
+                "Download and install now?"
+    if not (queryBox msg title:(SS_SCRIPT_NAME + " — Update Available")) do
+    (
+        format "[ UpdateChecker:% ] User declined update.\n" SS_SCRIPT_NAME
+        return false
+    )
+
+    -- Download to temp first
+    format "[ UpdateChecker:% ] Downloading...\n" SS_SCRIPT_NAME
+    local tmpPkg  = (getDir #temp) + "\\ss_pkg_" + SS_SCRIPT_NAME + ".mcr"
+
+    if not (curlFetch SS_PACKAGE_URL tmpPkg) do
+    (
+        format "[ UpdateChecker:% ] Download failed.\n" SS_SCRIPT_NAME
+        messageBox "Download failed.\nPlease update manually on Scriptspot." \
+            title:(SS_SCRIPT_NAME + " — Download Failed")
+        shellLaunch SS_SCRIPTSPOT_URL ""
+        return false
+    )
+
+    -- Verify temp file isn't a 404 page
+    local firstLine = ""
+    try
+    (
+        local f = openFile tmpPkg mode:"r"
+        firstLine = readline f
+        close f
+    )
+    catch ()
+
+    if findString firstLine "404" != undefined do
+    (
+        format "[ UpdateChecker:% ] Download returned 404.\n" SS_SCRIPT_NAME
+        deleteFile tmpPkg
+        messageBox "Download failed (file not found on server).\nPlease update manually on Scriptspot." \
+            title:(SS_SCRIPT_NAME + " — Download Failed")
+        shellLaunch SS_SCRIPTSPOT_URL ""
+        return false
+    )
+
+    -- Copy from temp to #userMacros
+    format "[ UpdateChecker:% ] Installing...\n" SS_SCRIPT_NAME
+    local destFile = (getDir #userMacros) + "\\" + SS_SCRIPT_FILENAME
+    copyFile tmpPkg destFile
+    deleteFile tmpPkg
+
+    if not (doesFileExist destFile) do
+    (
+        format "[ UpdateChecker:% ] Copy to userMacros failed.\n" SS_SCRIPT_NAME
+        messageBox "Install failed.\nPlease update manually on Scriptspot." \
+            title:(SS_SCRIPT_NAME + " — Install Failed")
+        shellLaunch SS_SCRIPTSPOT_URL ""
+        return false
+    )
+
+    -- Re-execute without reboot
+    format "[ UpdateChecker:% ] Loading updated script...\n" SS_SCRIPT_NAME
+    local reloaded = false
+    try ( fileIn destFile; reloaded = true ) catch ()
+
+    if reloaded then
+    (
+        format "[ UpdateChecker:% ] Success - loaded v%\n" SS_SCRIPT_NAME remoteVer
+        messageBox ("v" + remoteVer + " installed and loaded!\nNo restart needed.") \
+            title:(SS_SCRIPT_NAME + " — Updated!")
+    )
+    else
+    (
+        format "[ UpdateChecker:% ] fileIn failed - restart needed.\n" SS_SCRIPT_NAME
+        messageBox ("v" + remoteVer + " downloaded.\nPlease restart 3ds Max to apply the update.") \
+            title:(SS_SCRIPT_NAME + " — Updated!")
+    )
+
+    reloaded
+)
 	
 	--fileIn ((getDir #userScripts) + "\\SS_UpdateChecker.ms")
 	checkForUpdate()

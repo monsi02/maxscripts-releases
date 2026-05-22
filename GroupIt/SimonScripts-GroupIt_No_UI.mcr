@@ -230,7 +230,7 @@ fn checkForUpdate silent:true =
     local reloaded = false
 	try 
 	( 
-		fileIn destFile
+		--fileIn destFile
 		-- relaunch the macro to apply new version immediately
 		macros.run "SimonScripts" "GroupIt_no_UI"
 		reloaded = true 

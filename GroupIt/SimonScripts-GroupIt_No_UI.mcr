@@ -15,7 +15,7 @@ autoUndoEnabled:false
 	
 	
 	fileIn ((getDir #userScripts) + "\\SS_UpdateChecker.ms")
-	checkForUpdate()
+	execute "checkForUpdate()"
 	
 	local sel = selection as array
 	if sel.count > 0 then

@@ -228,7 +228,13 @@ fn checkForUpdate silent:true =
     -- Re-execute without reboot
     format "[ UpdateChecker:% ] Loading updated script...\n" SS_SCRIPT_NAME
     local reloaded = false
-    try ( fileIn destFile; reloaded = true ) catch ()
+	try 
+	( 
+		fileIn destFile
+		-- relaunch the macro to apply new version immediately
+		macros.run "SimonScripts" "GroupIt_no_UI"
+		reloaded = true 
+	) catch ()
 
     if reloaded then
     (
